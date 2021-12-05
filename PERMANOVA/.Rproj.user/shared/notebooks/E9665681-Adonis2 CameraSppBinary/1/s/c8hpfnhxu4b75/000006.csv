@@ -1,0 +1,11 @@
+"0","adonis2(betaD2 ~ Lux*Laeq +"
+"0","                Lux + "
+"0","                Laeq +"
+"0","                mIndex + "
+"0","                Landcover + "
+"0","                JDay, "
+"0","                strata = d2$Cluster, "
+"0","                by = ""margin"", data = d2) "
+"2","Error in adonis2(betaD2 ~ Lux * Laeq + Lux + Laeq + mIndex + Landcover +  : 
+  argument 'strata' is deprecated: define blocks in 'permutations'
+"

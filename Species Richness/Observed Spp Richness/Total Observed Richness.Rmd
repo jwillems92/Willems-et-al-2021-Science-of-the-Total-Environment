@@ -1,0 +1,184 @@
+---
+title: "All Species Observed Richness"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r, include=FALSE}
+library(tidyverse)
+library(lubridate)
+library(lmerTest)
+library(lme4)
+library(effects)
+library(MuMIn)
+library(DHARMa)
+library(glmmTMB)
+library(performance)
+library(sjPlot)
+library(patchwork)
+library(ggeffects)
+```
+
+```{r Import Data, include=FALSE}
+CD <- read_csv("Data/NEW_AllCamsCounts.csv")
+covs <- read_csv("Data/Cameras_ALL_Covs.csv")
+```
+
+```{r Join covariates DF to richness DF, include=FALSE}
+covs <- covs %>% 
+  mutate(Camera = paste(Site, Camera, sep = "_")) %>% 
+  select(Site, Camera)
+
+CD <- left_join(CD, covs)
+```
+
+
+Since the way we have the data formatted, continuous variables are averaged over the 3-day period the cameras were out. As such, can only use numerical values for moonlight (Moon_Illum and Moon_Index)
+
+
+## INITIAL MODELS
+
+```{r Moon phase variable comparison}
+mm1 <- glmmTMB(rich ~ scale(M_Illum) + (1|Cluster/Site), data = CD, family = compois)
+mm2 <- glmmTMB(rich ~ scale(mIndex) + (1|Cluster/Site), data = CD, family = compois)
+
+AICc(mm1, mm2)
+
+summary(mm2)
+```
+
+mIndex model has lower AICc score & p-value < 0.15 -> include in global model
+
+
+
+```{r Landcover and Julian date model}
+lm2 <- glmmTMB(rich ~ Landcover + scale(JDay) + (1|Cluster/Site), data = CD, family = compois)
+
+summary(lm2)
+```
+
+Both LC and JDay had p-values > 0.15 -> neither included in global model
+
+
+
+## Global Models
+
+
+```{r Treatment global model}
+Tgm1 <- glmmTMB(rich ~ Treatment * scale(mIndex) + (1|Cluster/Site), data = CD, family = compois)
+```
+
+```{r Dredge Treatment global model}
+options(na.action = "na.fail")
+GD1 <- dredge(Tgm1)
+options(na.action = "na.omit")
+GD1
+```
+
+Dredge results tabel:
+
+  cnd((Int)) dsp((Int)) cnd(mIn) cnd(Trt) cnd(mIn:Trt) df   logLik  AICc delta weight
+2    0.13090          +  -0.5077                        5 -281.496 573.3  0.00  0.507
+1   -0.02168          +                                 4 -282.707 573.6  0.33  0.429
+--------------------------------------------------------------------------------------
+4    0.09662          +  -0.5096        +               8 -281.073 578.8  5.54  0.032
+3   -0.05546          +                 +               7 -282.291 579.1  5.83  0.028
+8    0.08592          +  -0.4534        +            + 11 -279.742 582.7  9.44  0.005
+
+```{r}
+Tfm1 <- glmmTMB(rich ~ scale(mIndex) + (1|Cluster/Site), data = CD, family = compois)
+Tfm2 <- glmmTMB(rich ~ (1|Cluster/Site), data = CD, family = compois)
+```
+
+
+
+
+
+
+
+```{r Numerical variables global model}
+# Compare LAeq and LZeq models
+
+Ngm1 <- glmmTMB(rich ~ scale(Laeq) * scale(mIndex) + 
+                       scale(Laeq) * scale(Lux) + (1|Cluster/Site), data = CD, family = compois)
+
+Ngm2 <- glmmTMB(rich ~ scale(Lzeq) * scale(mIndex) + 
+                       scale(Lzeq) * scale(Lux) + (1|Cluster/Site), data = CD, family = compois)
+
+AICc(Ngm1, Ngm2)
+```
+
+Laeq model slightly better but both models essentially equal (delta AICc ~ 0.8)
+
+
+```{r Dredge Laeq global model}
+options(na.action = "na.fail")
+GD2 <- dredge(Ngm1)
+options(na.action = "na.omit")
+GD2
+```
+
+Model selection table 
+   cnd((Int)) dsp((Int))  cnd(Laq) cnd(Lux)  cnd(mIn) cnd(Laq:Lux) cnd(Laq:mIn) df   logLik  AICc delta 
+5    0.130900          +                    -0.507700                            5 -281.496 573.3  0.00
+1   -0.021680          +                                                         4 -282.707 573.6  0.33
+7    0.152700          +            -0.2687 -0.503400                            6 -281.009 574.4  1.14
+3    0.001867          +            -0.2734                                      5 -282.202 574.7  1.41
+6   -0.037540          +  0.003743          -0.508800                            6 -281.404 575.2  1.92
+--------------------------------------------------------------------------------------------------------
+2   -0.164200          +  0.003162                                               5 -282.641 575.6  2.29
+16   0.253100          + -0.001867  -5.1470 -0.512100       0.1053               8 -279.701 576.1  2.79
+8   -0.003735          +  0.003469  -0.2650 -0.504300                            7 -280.929 576.4  3.10
+12   0.118200          + -0.002256  -5.1380                 0.1047               7 -280.942 576.4  3.13
+4   -0.128700          +  0.002890  -0.2703                                      6 -282.146 576.7  3.41
+22  -0.274700          +  0.009111           0.283800                  -0.01811  7 -281.289 577.1  3.82
+
+
+```{r}
+Nfm1 <- glmmTMB(rich ~ scale(mIndex) + (1|Cluster/Site), data = CD, family = compois)
+NullM <- glmmTMB(rich ~ (1|Cluster/Site), data = CD, family = compois)
+Nfm2 <- glmmTMB(rich ~ scale(mIndex) + scale(Lux) + (1|Cluster/Site), data = CD, family = compois)
+Nfm3 <- glmmTMB(rich ~ scale(Lux) + (1|Cluster/Site), data = CD, family = compois)
+Nfm4 <- glmmTMB(rich ~ scale(mIndex) + scale(Laeq) + (1|Cluster/Site), data = CD, family = compois)
+
+summary(Nfm4)
+```
+
+```{r}
+confint(Nfm4, method = "Wald")
+```
+
+
+
+Summary:
+Moon Index - weak effect in 3/4 top-ranked models
+Lux - no effect in any model
+Laeq - no effect in any model
+
+**Null model is also highly competitive (2nd ranked, delta AICc = 0.33)
+
+
+```{r Model Summary Plot for All Species}
+AllSppPlot <- plot_models(Nfm1, Nfm2, Nfm3, Nfm4,
+            vline.color = "black",
+show.legend = FALSE,
+transform = NULL,
+std.est="std2",
+spacing=.5,
+ci.lvl=0.95,
+grid.breaks = 1,
+axis.labels=c("Noise (LAeq)","Light (Lux)","Moon Index"),
+axis.title = "Effect Size",
+colors=c("royalblue1","coral1","turquoise3","firebrick1"),
+p.shape = TRUE) + 
+  ylim(-0.4, 0.4) +
+  theme_classic(base_size = 18) +
+  ggtitle("Total Species Observed Richness") +
+  theme(plot.title = element_text(size = 12, face = "bold"))
+
+AllSppPlot
+```
+

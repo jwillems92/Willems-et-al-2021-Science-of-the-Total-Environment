@@ -1,0 +1,10 @@
+"0","datMan <- read_csv(""EffectsPlotManualBuildData.csv"")"
+"2","Parsed with column specification:
+cols(
+  Model = [31mcol_character()[39m,
+  Variable = [31mcol_character()[39m,
+  Estimate = [32mcol_double()[39m,
+  lowerCI = [32mcol_double()[39m,
+  upperCI = [32mcol_double()[39m
+)
+"

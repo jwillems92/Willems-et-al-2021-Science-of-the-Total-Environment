@@ -1,0 +1,195 @@
+---
+title: "Mammal Species Observed Richness"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r, include=FALSE}
+library(tidyverse)
+library(lubridate)
+library(lmerTest)
+library(lme4)
+library(effects)
+library(MuMIn)
+library(DHARMa)
+library(glmmTMB)
+library(performance)
+library(sjPlot)
+library(patchwork)
+library(ggeffects)
+```
+
+```{r Import Data, include=FALSE}
+CD <- read_csv("Data/NEW_MammalRichness.csv")
+covs <- read_csv("Data/Cameras_ALL_Covs.csv")
+```
+
+```{r Join covariates DF to richness DF, include=FALSE}
+covs <- covs %>% 
+  mutate(Camera = paste(Site, Camera, sep = "_")) %>% 
+  select(Site, Camera)
+
+CD <- left_join(CD, covs)
+```
+
+
+
+## INITIAL MODELS
+
+```{r Moon phase variable comparison}
+mm1 <- glmmTMB(rich ~ scale(M_Illum) + (1|Cluster/Site), data = CD, family = compois)
+mm2 <- glmmTMB(rich ~ scale(mIndex) + (1|Cluster/Site), data = CD, family = compois)
+
+AICc(mm1, mm2)
+
+summary(mm2)
+```
+
+mIndex model has lower AICc score & p-value < 0.15 -> include in global model
+
+
+
+```{r Landcover and Julian date model}
+lm2 <- glmmTMB(rich ~ Landcover + scale(JDay) + (1|Cluster/Site), data = CD, family = compois)
+
+summary(lm2)
+```
+
+Both LC and JDay had p-values > 0.15 -> neither included in global model
+
+
+
+## Global Models
+
+
+```{r Treatment global model}
+Tgm1 <- glmmTMB(rich ~ Treatment * scale(mIndex) + (1|Cluster/Site), data = CD, family = compois)
+```
+
+```{r Dredge Treatment global model}
+options(na.action = "na.fail")
+GD1 <- dredge(Tgm1)
+options(na.action = "na.omit")
+GD1
+```
+
+Top-model set from dredge:
+
+  cnd((Int)) dsp((Int)) cnd(scl(mIn)) cnd(Trt) cnd(scl(mIn):Trt) df   logLik  AICc delta weight
+2    -0.4149          +       -0.2143                             5 -215.051 440.4  0.00  0.384
+4    -0.6804          +       -0.2159        +                    8 -211.899 440.4  0.08  0.368
+------------------------------------------------------------------------------------------------
+3    -0.6747          +                      +                    7 -214.185 442.9  2.51  0.110
+1    -0.4106          +                                           4 -217.407 443.0  2.62  0.103
+
+
+```{r Treatment models top-ranked set}
+Tfm1 <- glmmTMB(rich ~ scale(mIndex) + (1|Cluster/Site), data = CD, family = compois)
+Tfm2 <- glmmTMB(rich ~ scale(mIndex) + Treatment + (1|Cluster/Site), data = CD, family = compois)
+```
+
+```{r}
+summary(Tfm2)
+```
+
+Summary:
+Moon Index - strong effect in both models
+Treatment - strong effect in 2nd ranked model
+
+
+
+
+```{r Numerical variables global model}
+# Compare LAeq and LZeq models
+
+Ngm1 <- glmmTMB(rich ~ scale(Laeq) * scale(mIndex) + 
+                       scale(Laeq) * scale(Lux) + (1|Cluster/Site), data = CD, family = compois)
+
+Ngm2 <- glmmTMB(rich ~ scale(Lzeq) * scale(mIndex) + 
+                       scale(Lzeq) * scale(Lux) + (1|Cluster/Site), data = CD, family = compois)
+
+AICc(Ngm1, Ngm2)
+```
+
+Laeq model slightly better (delta AICc ~ 1)
+
+
+```{r Dredge Laeq global model}
+options(na.action = "na.fail")
+GD2 <- dredge(Ngm1)
+options(na.action = "na.omit")
+GD2
+```
+
+#      Model               Delta AICc   AICc score               
+7   Lux + Moon            0.00            436.9
+8   Lux + LAeq + Moon     2.10            439.0
+3   Lux                   2.68            439.5
+16  Lux*Laeq + Moon       2.82            439.7
+5   Moon                  3.50            440.4
+
+
+**Top-ranked Treatment models competitive w/ top-ranked LAeq/Lux models (at delta 4 AICc level, not delta 2)
+
+```{r}
+Nfm1 <- glmmTMB(rich ~ scale(Lux) + 
+                       scale(mIndex) + (1|Cluster/Site), data = CD, family = compois)
+
+Nfm2 <- glmmTMB(rich ~ scale(Lux) + 
+                       scale(mIndex) + 
+                       scale(Laeq) + (1|Cluster/Site), data = CD, family = compois)
+
+Nfm3 <- glmmTMB(rich ~ scale(Lux) + (1|Cluster/Site), data = CD, family = compois)
+
+Nfm4 <- glmmTMB(rich ~ scale(Lux)*scale(Laeq) + 
+                       scale(mIndex) + (1|Cluster/Site), data = CD, family = compois)
+
+Nfm5 <- glmmTMB(rich ~ scale(mIndex) + (1|Cluster/Site), data = CD, family = compois)
+
+summary(Nfm1)
+```
+
+```{r}
+confint(Nfm1, method = "Wald")
+```
+
+
+
+
+Include all models (Treatment and Lux/Laeq) that are w/i 2 delta AICc of top-ranked Lux/Laeq model?
+Or just go with the top-ranked Lux/LAeq models?
+
+```{r Model Summary Plot}
+MammSppPlot <- plot_models(Nfm1,
+            vline.color = "black",
+show.legend = FALSE,
+transform = NULL,
+std.est="std2",
+spacing=.5,
+ci.lvl=0.95,
+grid.breaks = 1,
+#axis.labels=c("Light (Lux)","Moon Index", "Treatment: Control", "Treatment: Light", "Treatment: Noise"),
+axis.title = "Effect Size",
+colors=c("royalblue1"),
+p.shape = TRUE) + 
+  ylim(-0.5, 0.5) +
+  theme_classic(base_size = 18) +
+  ggtitle("Mammal Observed Richness") +
+  theme(plot.title = element_text(size = 12, face = "bold"))
+
+MammSppPlot
+```
+Triangle = p-value <= 0.01
+Closed circle = p-value <= 0.05
+Open circle = p-value <= 0.15
+
+
+
+
+
+
+
+

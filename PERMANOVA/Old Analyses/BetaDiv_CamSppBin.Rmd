@@ -1,0 +1,181 @@
+---
+title: "Untitled"
+author: "JWILLEMS"
+date: "3/11/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r Packages, include=FALSE}
+library(vegan)
+library(multcomp)
+library(lme4)
+library(performance)
+library(MuMIn)
+library(blmeco)
+library(matrixStats)
+library(ecodist)
+library(MASS)
+options(na.action = "na.fail")
+```
+
+
+```{r}
+d <- read.csv("CamSppBin2.csv", header=TRUE)
+head(d)
+```
+
+```{r}
+names(d)
+dd <- as.matrix(d[2:26])
+
+d$detect <- ifelse(d$rich < 1, 0, 1)
+```
+
+```{r}
+## how many zeros per treatment
+d_zero <- subset(d, d$rich < 1)     # Very few zeroes now, only 2 cameras
+d_zero
+
+
+## does number of cameras with zero detections differ per treatment?
+sapply(split(d_zero$Treatment, d_zero$Treatment), length) # looks like fewer at combo
+
+### ok, so one challenge is that cameras with zero detections cannot be included
+d2 <- subset(d, d$rich > 0)
+
+## how many non zero camereas are left per treatment?
+sapply(split(d2$Treatment, d2$Treatment), length) # looks ok
+```
+
+
+```{r}
+# The following indices have binary versions
+# use which ever maximizes index. Try gradients of light and noise, but also treatment categories
+
+rankindex(d2$Treatment, d2[2:26],indices = c("euclidean", "manhattan", "gower", "altGower", "canberra", "clark", "kulczynski", "horn", "binomial", "jaccard", "bray"))
+
+# for lux, kulczynski, clark, canberra, altGower
+# for laeq, kulczynski, clark, canberra, horn
+# for treatment, altGower, bray, jaccard, canberra
+
+betaD <-vegdist(d2[2:26], method ="canberra", binary=TRUE)
+```
+
+
+```{r}
+#### we can now use a permanova to see whether we see turnover among our treatments
+
+adonis(betaD ~ d2$Treatment + d2$Laeq + d2$Lux + d2$M_Illum + d2$Landcover + d2$JDay + d2$Treatment*d2$M_Illum + d2$Lux*d2$M_Illum + d2$Lux*d2$Laeq)     
+
+
+### add pair.wise adonis for treatment conparisons
+
+pairwise.adonis(x=d2[,2:26], factor = d2$Treatment, sim.function="vegdist", sim.method = "canberra", p.adjust.m = "none")
+```
+
+              Df SumsOfSqs  MeanSqs  F.Model    R2    Pr(>F)   
+d2$Treatment   3     1.957  0.65236  1.9307  0.02603  0.025 * 
+d2$Laeq        1     0.272  0.27175  0.8043  0.00361  0.511   
+d2$Lux         1     0.234  0.23368  0.6916  0.00311  0.636   
+d2$Landcover   1     0.247  0.24684  0.7305  0.00328  0.627   
+d2$M_Illum     1     1.293  1.29298  3.8267  0.01720  0.008 **
+d2$JDay        1     0.220  0.21950  0.6496  0.00292  0.714   
+Residuals    210    70.956  0.33789          0.94384          
+Total        218    75.178                  1.00000     
+
+
+      Pairs            F.Model       R2       p    pADJ  
+Control vs Light	   0.9033048	0.01076602	0.470	0.470	
+Control vs Noise	   3.8140934	0.04246654	0.006	0.006	*
+Control vs Combined	 1.2535992	0.01542823	0.223	0.223	
+Light vs Noise	     2.7376023	0.03269263	0.006	0.006	*
+Light vs Combined	   2.2546136	0.02918419	0.026	0.026	.
+Noise vs Combined	   5.1877248	0.06236166	0.002	0.002	*
+
+
+
+
+
+######################
+## we can also use nonmetric multidimensional scaling to visualize differences between sites  
+####### testing plotting metaMDS
+
+
+```{r}
+# generate a scree plot to determine the parsimonious axis number
+
+scree<-nmds(betaD,mindim=1, maxdim=5, nit=10)
+stress<-scree$stress
+plot(stress)
+
+axis.seq<-c(seq(1,1, length=10), seq(2,2,length=10), seq(3,3, length=10), seq(4,4,length=10), seq(5,5,length=10))
+plot(stress~factor(axis.seq))
+
+
+###A good rule of thumb: stress > 0.05 provides an excellent representation in reduced dimensions, > 0.1 is great, >0.2 is good/ok, and stress > 0.3 provides a poor representation.**
+# https://jonlefcheck.net/2012/10/24/nmds-tutorial-in-r/
+```
+
+# run an MDS on the data
+#####FIRST MAKE A DISTANCE MATRIX USING a distance matrix THEN SEND TO NMDS
+
+```{r, include=FALSE}
+D3.mds<-metaMDS(betaD, k=3, trymax=100)
+D3.mds ### 
+```
+
+
+```{r}
+#### display three versions with each showing proportion of guild of total
+## see if 3D NMDS will be better to display
+plot(D3.mds, las=1) ## open circles are points and crosses are species
+
+Env <- data.frame(d2$Treatment)
+fit <- envfit(D3.mds, Env)
+fit
+plot(fit)
+```
+
+
+```{r}
+par(mfrow=c(1,2))
+
+# axes 1 and 2
+plot(D3.mds, type = "n", las=1,  xlim=c(-0.5,0.5), ylim=c(-0.5,0.5), choices = c(1,2))
+
+ordihull(D3.mds,groups=d2$Treatment,draw="polygon",col=c("grey44", "pink", "skyblue", "red"),label=F)
+points(D3.mds, display = "sites", pch = 21, cex = 2)
+
+# axes 1 and 3
+plot(D3.mds, type = "n", las=1,  xlim=c(-0.5,0.5), ylim=c(-0.5,0.5), choices = c(1,3), xlab ="NMDS1", ylab="NMDS3")
+ordihull(D3.mds,groups=d2$Treatment,draw="polygon",col=c("grey44", "pink", "skyblue", "red"),choices = c(1,3), label=F)
+points(D3.mds, choices = c(1,3), display = "sites", pch = 21, cex = 2)
+```
+
+
+```{r}
+##### now with oridispider
+#ordispider(ord, groups, display="sites", w = weights(ord, display),
+#  spiders = c("centroid", "median"),  show.groups, 
+# label = FALSE, col = NULL, lty = NULL, lwd = NULL)
+
+par(mfrow=c(1,2))
+
+# axes 1 and 2
+plot(D3.mds, type = "n", las=1,  xlim=c(-0.5,0.5), ylim=c(-0.5,0.5), choices = c(1,2))
+ordispider(D3.mds,groups=d$Treatment,display="sites",col=c("grey44", "pink", "skyblue","red"),label=F, lwd=3, choices = c(1,2))
+points(D3.mds, display = "sites", pch = 21, cex = 0.25, choices = c(1,2))
+
+# axes 1 and 3
+plot(D3.mds, type = "n", las=1,  xlim=c(-0.5,0.5), ylim=c(-0.5,0.5), choices = c(1,3), xlab ="NMDS1", ylab="NMDS3")
+ordispider(D3.mds,groups=d$Treatment,display="sites",col=c("grey44", "pink", "skyblue", "red"),label=F, lwd=3, choices = c(1,3))
+points(D3.mds, display = "sites", pch = 21, cex = 0.25, choices = c(1,3))
+```
+
+
+
+

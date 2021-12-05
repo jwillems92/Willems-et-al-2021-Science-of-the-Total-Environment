@@ -1,0 +1,169 @@
+---
+title: "Birds Observed Richness"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r, include=FALSE}
+library(tidyverse)
+library(lubridate)
+library(lmerTest)
+library(lme4)
+library(effects)
+library(MuMIn)
+library(DHARMa)
+library(glmmTMB)
+library(performance)
+library(sjPlot)
+library(patchwork)
+library(ggeffects)
+```
+
+```{r Import Data, include=FALSE}
+CD <- read_csv("Data/NEW_BirdRichness.csv")
+covs <- read_csv("Data/Cameras_ALL_Covs.csv")
+```
+
+```{r Join covariates DF to richness DF, include=FALSE}
+covs <- covs %>% 
+  mutate(Camera = paste(Site, Camera, sep = "_")) %>% 
+  select(Site, Camera)
+
+CD <- left_join(CD, covs)
+```
+
+
+
+## INITIAL MODELS
+
+```{r Moon phase variable comparison}
+mm1 <- glmmTMB(rich ~ scale(M_Illum) + (1|Cluster/Site), data = CD, family = compois)
+mm2 <- glmmTMB(rich ~ scale(mIndex) + (1|Cluster/Site), data = CD, family = compois)
+
+AICc(mm1, mm2)
+
+summary(mm2)
+```
+
+mIndex model has lower AICc score & p-value < 0.15 -> include in global model
+
+
+
+```{r Landcover and Julian date model}
+lm2 <- glmmTMB(rich ~ Landcover + scale(JDay) + (1|Cluster/Site), data = CD, family = compois)
+
+summary(lm2)
+```
+
+Both LC and JDay had p-values > 0.15 -> neither included in global model
+
+
+
+## Global Models
+
+
+```{r Treatment global model}
+Tgm1 <- glmmTMB(rich ~ Treatment * scale(mIndex) + (1|Cluster/Site), data = CD, family = compois)
+```
+
+```{r Dredge Treatment global model}
+options(na.action = "na.fail")
+GD1 <- dredge(Tgm1)
+options(na.action = "na.omit")
+GD1
+```
+
+Top-ranked models from dredge (delta AICc <= 2):
+
+  cnd((Int)) dsp((Int)) cnd(scl(mIn)) cnd(Trt) cnd(scl(mIn):Trt) df   logLik  AICc delta weight
+3     -1.756          +                      +                    7 -102.685 219.9  0.00  0.291
+4     -1.752          +       -0.3393        +                    8 -101.634 219.9  0.04  0.285
+2     -2.032          +       -0.3483                             5 -105.169 220.6  0.73  0.202
+1     -2.031          +                                           4 -106.238 220.7  0.78  0.197
+
+
+
+```{r Treatment models top-ranked set}
+Tfm1 <- glmmTMB(rich ~ Treatment + (1|Cluster/Site), data = CD, family = compois)
+
+Tfm2 <- glmmTMB(rich ~ scale(mIndex) + Treatment + (1|Cluster/Site), data = CD, family = compois)
+
+Tfm3 <- glmmTMB(rich ~ scale(mIndex) + (1|Cluster/Site), data = CD, family = compois)
+
+Nullm
+
+summary(Tfm1)
+```
+
+```{r}
+TukeyHSD(Tfm1)
+confint(Tfm1, method = "Wald")
+```
+
+
+
+
+
+```{r Numerical variables global model}
+# Compare LAeq and LZeq models
+
+Ngm1 <- glmmTMB(rich ~ scale(Laeq) * scale(mIndex) + 
+                       scale(Laeq) * scale(Lux) + (1|Cluster/Site), data = CD, family = compois)
+
+Ngm2 <- glmmTMB(rich ~ scale(Lzeq) * scale(mIndex) + 
+                       scale(Lzeq) * scale(Lux) + (1|Cluster/Site), data = CD, family = compois)
+
+AICc(Ngm1, Ngm2)
+```
+
+Laeq model very slightly better (delta AICc ~ 0.2)
+
+
+```{r Dredge Laeq global model}
+options(na.action = "na.fail")
+GD2 <- dredge(Ngm1)
+options(na.action = "na.omit")
+GD2
+```
+
+
+   Model          Delta   AICc
+5  Moon           0.00    220.6        
+1  Null model     0.05    220.7  
+7  Lux + Moon     1.91    222.5
+3  Lux            1.98    222.6
+
+
+Only model from Lux/LAeq dredge that's competitive is Moon only model which is already in Treatment model set
+For final results, just go with the top-ranked models from Treatment dredge
+
+
+
+```{r Model Summary Plot}
+BirdSppPlot <- plot_models(Tfm1, Tfm2, Tfm3,
+            vline.color = "black",
+show.legend = FALSE,
+transform = NULL,
+std.est="std2",
+spacing=.5,
+ci.lvl=0.95,
+grid.breaks = 1,
+axis.labels=c("Moon Index", "Treatment: Combined", "Treatment: Light", "Treatment: Noise"),
+axis.title = "Effect Size",
+colors=c("royalblue1", "coral1", "turquoise3"),
+p.shape = TRUE) + 
+#  ylim(-0.5, 1) +
+  theme_classic(base_size = 18) +
+  ggtitle("Bird Observed Richness") +
+  theme(plot.title = element_text(size = 12, face = "bold"))
+
+BirdSppPlot
+```
+
+
+
+
+

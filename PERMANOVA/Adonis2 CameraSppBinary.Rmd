@@ -1,0 +1,292 @@
+---
+title: "SiteSppBinary_Adonis2"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r Packages, include=FALSE}
+library(tidyverse)
+library(vegan)
+library(vegan3d)
+library(multcomp)
+library(lme4)
+library(performance)
+library(MuMIn)
+library(blmeco)
+library(matrixStats)
+library(ecodist)
+library(MASS)
+library(rgl)
+library(ggeffects)
+library(patchwork)
+options(na.action = "na.fail")
+```
+
+
+```{r}
+d <- read.csv("Data/CamSppBin2.csv", header=TRUE)
+head(d)
+```
+
+```{r}
+# how many zeros per treatment
+d_zero <- subset(d, d$rich < 1)     # Very few zeroes now, only 4 cameras
+d_zero
+
+# cameras with zero detections cannot be included
+d2 <- subset(d, d$rich > 0)
+
+# how many non zero cameras are left per treatment?
+sapply(split(d2$Treatment, d2$Treatment), length) # slightly fewer cameras at combined and light treatments
+```
+
+
+```{r}
+rankindex(d2$Lux, d2[2:24],indices = c("euclidean", "manhattan", "gower", "altGower", "canberra", "clark", "kulczynski", "horn", "binomial", "jaccard", "bray"))
+
+# for lux: euclidean, manhattan, gower, binomial, altGower, canberra
+# for laeq: kulczynski, altGower, canberra, clark, horn, jaccard, bray
+# for treatment: euclidean, manhattan, gower, binomial, jaccard
+
+
+betaD1 <-vegdist(d2[2:24], method ="gower", binary=TRUE) # for Treatment model
+
+betaD2 <-vegdist(d2[2:24], method ="altGower", binary=TRUE) # for Lux/LAeq model
+```
+
+
+From blog post: https://mcfromnz.wordpress.com/2011/03/02/anova-type-iiiiii-ss-explained/
+
+Type III:
+
+SS(A | B, AB) for factor A.
+SS(B | A, AB) for factor B.
+
+This type tests for the presence of a main effect after the other main effect and interaction. This approach is therefore valid in the presence of significant interactions.
+
+However, it is often not interesting to interpret a main effect if interactions are present (generally speaking, if a significant interaction is present, the main effects should not be further analyzed).
+
+If the interactions are not significant, type II gives a more powerful test.
+
+```{r}
+adonis2(betaD2 ~ Lux*Laeq +
+                Lux + 
+                Laeq +
+                mIndex + 
+                Landcover + 
+                JDay, 
+                strata = d2$Cluster, 
+                by = "margin", data = d2) 
+
+
+adonis2(betaD2 ~ Lux + 
+                Laeq +
+                mIndex + 
+                Landcover + 
+                JDay, 
+                strata = d2$Cluster, 
+                by = "margin", data = d2) 
+
+
+adonis2(betaD1 ~ Treatment +
+                mIndex + 
+                Landcover + 
+                JDay, 
+                strata = d2$Cluster, 
+                by = "margin", data = d2) 
+```
+
+Model: Lux*LAeq
+
+#           Df SumOfSqs   R2      F    Pr(>F)   
+Lux:Laeq    1    0.435 0.01013 1.6723  0.131 
+mIndex      1    1.022 0.02377 3.9228  0.005 **
+Landcover   1    0.263 0.00612 1.0095  0.365   
+JDay        1    0.235 0.00546 0.9006  0.484   
+Residual  152   39.581 0.92109                 
+Total     158   42.972 1.00000    
+
+---------------------------------------------------
+
+Model: Lux + LAeq
+
+#           Df SumOfSqs      R2      F Pr(>F)   
+Lux         1    0.446 0.01038 1.7059  0.116   
+Laeq        1    0.174 0.00405 0.6651  0.716   
+mIndex      1    1.045 0.02432 3.9954  0.004 **
+Landcover   1    0.248 0.00576 0.9463  0.410   
+JDay        1    0.234 0.00545 0.8961  0.501   
+Residual  153   40.016 0.93123                 
+Total     158   42.972 1.00000  
+
+---------------------------------------------------
+
+Model: Treatment
+
+#           Df SumOfSqs      R2      F Pr(>F)   
+Treatment   3  0.02264 0.03424 1.9046  0.050 *  
+mIndex      1  0.02054 0.03106 5.1828  0.001 ***
+Landcover   1  0.00150 0.00226 0.3779  0.771    
+JDay        1  0.01052 0.01590 2.6541  0.039 *  
+Residual  152  0.60239 0.91083                  
+Total     158  0.66136 1.00000 
+
+
+
+
+```{r, Treatment pairwise comparison}
+pairwise.adonis(x=d2[,2:24], factor = d2$Treatment, sim.function="vegdist", sim.method = "gower", p.adjust.m = "none")
+```
+
+
+Comparison                F.Model   R2          p.value
+Control vs Light	        1.295382	0.01593427	0.297		
+Control vs Noise	        2.762674	0.03184173	0.051	.	
+Control vs Combined	      1.441255	0.01837368	0.255		
+Light vs Noise	          1.901872	0.02380260	0.123	.	
+Light vs Combined	        2.870963	0.03886456	0.031 *
+Noise vs Combined	        1.684631	0.02196830	0.174		
+
+
+
+## FIGURES
+
+
+
+```{r}
+leqD <- dist(d2$Laeq)
+luxD <- dist(d2$Lux)
+mIndexD <- dist(d2$mIndex)
+JDayD <- dist(d2$JDay)
+betaDv <- c(betaD2) 
+
+envD <- data.frame(c(leqD),c(luxD),c(JDayD), c(mIndexD), betaDv)
+names(envD) <- c("LeqD", "LuxD", "JDayD", "MoonIndexD", "betaDdf")
+
+betaDMod <- lm(betaDdf ~ LeqD* LuxD + JDayD + MoonIndexD, data = envD)
+
+summary(betaDMod)
+```
+
+```{r}
+DFsdB <- ggpredict(betaDMod, terms = c("LeqD", "LuxD"), back.transform =F, type ="fe")
+
+C1 <- plot(DFsdB, colors="eight", add.data=F)  + 
+      labs(x="Sound difference (dB)", y ="Dissimilarity", title ="") + 
+      theme_classic(base_size = 36) + 
+      theme(panel.grid.minor = element_blank()) + 
+      theme(axis.line = element_line(colour = "black")) +
+      theme(legend.position = "none") +
+      labs(subtitle = "(a)") +
+      theme(plot.subtitle = element_text(size = 36, face = "bold")) +
+      theme(plot.subtitle = element_text(hjust = -0.13))
+C1
+```
+
+```{r}
+DFsLux <- ggpredict(betaDMod, terms = c("LuxD", "LeqD"), back.transform =F, type ="fe")
+
+D1 <- plot(DFsLux, colors="eight", add.data=F)  + 
+      labs(x="Light difference (Lux)", y ="Dissimilarity", title ="") + 
+      theme_classic(base_size = 36) + 
+      theme(panel.grid.minor = element_blank()) + 
+      theme(axis.line = element_line(colour = "black")) +
+      theme(legend.position = "none") +
+      labs(subtitle = "(b)") +
+      theme(plot.subtitle = element_text(size = 36, face = "bold")) +
+      theme(plot.subtitle = element_text(hjust = -0.13))
+      
+D1
+```
+
+```{r}
+DFsMoon <- ggpredict(betaDMod, terms = c("MoonIndexD", "LeqD"), back.transform =F, type ="fe")
+
+M1 <- plot(DFsMoon, colors="eight", add.data=F)  + 
+      labs(x="Moonlight difference", y ="Dissimilarity", title ="") + 
+      theme_classic(base_size = 36) + 
+      theme(panel.grid.minor = element_blank()) + 
+      theme(axis.line = element_line(colour = "black")) +
+      theme(legend.position = "none") +
+      labs(subtitle = "(c)") +
+      theme(plot.subtitle = element_text(size = 36, face = "bold")) +
+      theme(plot.subtitle = element_text(hjust = -0.13))
+M1
+```
+
+```{r}
+C1 / D1 / M1
+```
+
+
+
+
+## Indicator Species Analysis
+
+
+```{r}
+library(indicspecies)
+
+indSpp <- multipatt(d2[2:24], d2$Treatment, control = how(nperm=999))
+
+summary(indSpp)
+```
+
+Combined Treatment 
+        stat   p.value    
+Turkey 0.378   0.001 ***
+
+-------------------------
+
+Light Treatment 
+           stat   p.value  
+Scrub.Jay 0.328   0.011 *
+
+-------------------------
+
+Group Noise Treatment 
+          stat   p.value  
+Grey.fox 0.273   0.043 *
+
+
+
+
+
+```{r}
+datGrouped <- d2 %>% dplyr::select(3:24, 27)
+
+datGrouped <- datGrouped %>% 
+   pivot_longer(!Treatment, names_to = "Taxa", values_to = "count") %>% 
+   group_by(Treatment, Taxa) %>% 
+   summarise(Count = sum(count))
+```
+
+```{r}
+p1 <- datGrouped %>% 
+   ggplot(aes(fill = Taxa, x = Treatment, y = Count)) + 
+   geom_bar(position="stack", stat="identity") + 
+   labs(y="# Cameras Detected At") +
+   facet_wrap(~Taxa) + 
+   theme_bw(base_size = 18) +
+   theme(legend.position = "none") 
+
+p1
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

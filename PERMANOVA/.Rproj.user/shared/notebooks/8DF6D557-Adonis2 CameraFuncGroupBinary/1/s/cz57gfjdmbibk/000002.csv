@@ -1,0 +1,6 @@
+"0","datGrouped <- d %>% dplyr::select(Nocturnal.rodents, Birds, Diurnal.rodents, Lagomorphs, Herps, Ungulates, Mesocarnivores, Treatment)"
+"0",""
+"0","datGrouped <- datGrouped %>% "
+"0","   pivot_longer(!Treatment, names_to = ""FGroup"", values_to = ""count"") %>% "
+"0","   group_by(Treatment, FGroup) %>% "
+"0","   summarise(Count = sum(count))"

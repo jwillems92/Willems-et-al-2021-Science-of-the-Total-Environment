@@ -1,0 +1,198 @@
+---
+title: "Untitled"
+author: "JWILLEMS"
+date: "3/11/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r Packages, include=FALSE}
+library(vegan)
+library(multcomp)
+library(lme4)
+library(performance)
+library(MuMIn)
+library(blmeco)
+library(matrixStats)
+library(ecodist)
+library(MASS)
+options(na.action = "na.fail")
+```
+
+
+```{r}
+d <- read.csv("CamTaxaBinary2.csv", header=TRUE)
+head(d)
+```
+
+```{r}
+names(d)
+dd <- as.matrix(d[2:9])
+
+d$detect <- ifelse(d$rich < 1, 0, 1)
+```
+
+
+```{r}
+## how many zeros per treatment
+d_zero <- subset(d, d$rich < 1)     ## No zeros 
+d_zero
+```
+
+
+```{r}
+# The following indices have binary versions
+# use which ever maximizes index. Try gradients of light and noise, but also treatment categories
+
+rankindex(d$M_Illum, d[2:9],indices = c("euclidean", "manhattan", "gower", "altGower", "canberra", "clark", "kulczynski", "horn", "binomial", "jaccard", "bray"))
+
+# for lux, kulczynski
+# for laeq, kulczynski, gower, manhattan, euclidean, binomial
+# for treatment, kulczynski, altGower, canberra, clark, horn
+# for moon phase: kulczynski, clark, canberra
+
+betaD <-vegdist(d[2:9], method ="kulczynski", binary=TRUE)
+
+```
+
+
+```{r}
+#### we can now use a permanova to see whether we see turnover among our treatments
+
+adonis(betaD ~ d$Treatment + d$Laeq + d$Lux + d$M_Illum + d$Landcover + d$JDay + d$Treatment*d$M_Illum + d$Lux*d$M_Illum + d$Lux*d$Laeq)  #kulczynski binary method
+
+### add pair.wise adonis for treatment conparisons
+
+pairwise.adonis(x=d[,2:9], factor = d$Treatment, sim.function="vegdist", sim.method = "kulczynski", p.adjust.m = "none")
+```
+
+Terms added sequentially (first to last)
+
+             Df SumsOfSqs MeanSqs F.Model      R2 Pr(>F)  
+d$Treatment   3     1.723 0.57426 2.76622 0.04823  0.018 *
+d$Laeq        1     0.056 0.05572 0.26839 0.00156  0.755  
+d$Lux         1     0.517 0.51735 2.49209 0.01448  0.093 .
+Residuals   161    33.423 0.20760         0.93572         
+Total       166    35.719                 1.00000   
+
+
+      Pair             F.Model      R2        p    pADJ
+Control vs Light	    0.8930888	0.01064556	0.417	0.417	
+Control vs Noise	    3.3208440	0.03676719	0.027	0.027	*
+Control vs Combined  	0.8736372	0.01067056	0.467	0.467	
+Light vs Noise	      4.3037238	0.04986719	0.020	0.020	*
+Light vs Combined	    1.7464755	0.02246373	0.158	0.158	
+Noise vs Combined	    6.6180177	0.07640463	0.004	0.004	*
+
+
+
+
+
+
+
+
+######################
+## we can also use nonmetric multidimensional scaling to visualize differences between sites  
+####### testing plotting metaMDS
+
+
+```{r}
+# generate a scree plot to determine the parsimonious axis number
+
+scree<-nmds(betaD,mindim=1, maxdim=5, nit=10)
+stress<-scree$stress
+plot(stress)
+
+axis.seq<-c(seq(1,1, length=10), seq(2,2,length=10), seq(3,3, length=10), seq(4,4,length=10), seq(5,5,length=10))
+plot(stress~factor(axis.seq))
+
+
+###A good rule of thumb: stress > 0.05 provides an excellent representation in reduced dimensions, > 0.1 is great, >0.2 is good/ok, and stress > 0.3 provides a poor representation.**
+# https://jonlefcheck.net/2012/10/24/nmds-tutorial-in-r/
+```
+
+# run an MDS on the data
+#####FIRST MAKE A DISTANCE MATRIX USING a distance matrix THEN SEND TO NMDS
+
+```{r, include=FALSE}
+D3.mds<-metaMDS(betaD, k=3, trymax=100)
+D3.mds ### 
+```
+
+
+```{r}
+#### display three versions with each showing proportion of guild of total
+## see if 3D NMDS will be better to display
+plot(D3.mds, las=1) ## open circles are points and crosses are species
+
+Env <- data.frame(d$Treatment)
+fit <- envfit(D3.mds, Env)
+fit
+plot(fit)
+```
+
+
+```{r}
+par(mfrow=c(1,2))
+
+# axes 1 and 2
+plot(D3.mds, type = "n", las=1,  xlim=c(-0.5,0.5), ylim=c(-0.5,0.5), choices = c(1,2))
+
+ordihull(D3.mds,groups=d$Treatment,draw="polygon",col=c("grey44", "pink", "skyblue", "red"),label=F)
+points(D3.mds, display = "sites", pch = 21, cex = 2)
+
+# axes 1 and 3
+plot(D3.mds, type = "n", las=1,  xlim=c(-0.5,0.5), ylim=c(-0.5,0.5), choices = c(1,3), xlab ="NMDS1", ylab="NMDS3")
+ordihull(D3.mds,groups=d$Treatment,draw="polygon",col=c("grey44", "pink", "skyblue", "red"),choices = c(1,3), label=F)
+points(D3.mds, choices = c(1,3), display = "sites", pch = 21, cex = 2)
+```
+
+
+```{r}
+##### now with oridispider
+#ordispider(ord, groups, display="sites", w = weights(ord, display),
+#  spiders = c("centroid", "median"),  show.groups, 
+# label = FALSE, col = NULL, lty = NULL, lwd = NULL)
+
+par(mfrow=c(1,2))
+
+# axes 1 and 2
+plot(D3.mds, type = "n", las=1,  xlim=c(-0.5,0.5), ylim=c(-0.5,0.5), choices = c(1,2))
+ordispider(D3.mds,groups=d$Treatment,display="sites",col=c("grey44", "pink", "skyblue","red"),label=F, lwd=3, choices = c(1,2))
+points(D3.mds, display = "sites", pch = 21, cex = 0.25, choices = c(1,2))
+
+# axes 1 and 3
+plot(D3.mds, type = "n", las=1,  xlim=c(-0.5,0.5), ylim=c(-0.5,0.5), choices = c(1,3), xlab ="NMDS1", ylab="NMDS3")
+ordispider(D3.mds,groups=d$Treatment,display="sites",col=c("grey44", "pink", "skyblue", "red"),label=F, lwd=3, choices = c(1,3))
+points(D3.mds, display = "sites", pch = 21, cex = 0.25, choices = c(1,3))
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

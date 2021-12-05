@@ -1,0 +1,5 @@
+"0","BTfm1 <- glmmTMB(rich ~ Treatment + (1|Cluster/Site), data = CD_Bird, family = compois)"
+"0",""
+"0","BTfm2 <- glmmTMB(rich ~ scale(mIndex) + Treatment + (1|Cluster/Site), data = CD_Bird, family = compois)"
+"0",""
+"0","BTfm3 <- glmmTMB(rich ~ scale(mIndex) + (1|Cluster/Site), data = CD_Bird, family = compois)"

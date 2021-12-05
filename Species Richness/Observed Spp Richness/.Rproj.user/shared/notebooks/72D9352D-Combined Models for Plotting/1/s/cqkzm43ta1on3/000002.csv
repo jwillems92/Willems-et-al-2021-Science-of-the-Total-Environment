@@ -1,0 +1,4 @@
+"0","MNfm1 <- glmmTMB(rich ~ scale(Lux) + "
+"0","                       scale(mIndex) + (1|Cluster/Site), data = CD_Mamm, family = compois)"
+"0",""
+"0","MNfm2 <- glmmTMB(rich ~ scale(Lux) + (1|Cluster/Site), data = CD_Mamm, family = compois)"

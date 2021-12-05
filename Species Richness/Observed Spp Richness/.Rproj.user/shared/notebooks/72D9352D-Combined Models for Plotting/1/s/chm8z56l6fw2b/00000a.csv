@@ -1,0 +1,22 @@
+"0","AllSppPlot <- plot_models(Nfm1, Nfm2, Nfm3, Nfm4,             
+            vline.color = ""black"",
+show.legend = FALSE,
+transform = NULL,
+line.size = 4.5,
+dot.size = 9,
+std.est=""std2"",
+spacing=.5,
+ci.lvl=0.95,
+grid.breaks = 1,
+axis.labels=c(""Noise (LAeq)"",""Light (Lux)"",""Moon Index""),
+axis.title = ""Effect Size"",
+colors=c(""#E69F00"",""#56B4E9"",""#009E73"",""#D55E00""),
+p.shape = TRUE) + 
+  ylim(-0.5, 0.5) +
+  theme_classic(base_size = 36) +
+  labs(subtitle = ""(a)"") +
+  theme(plot.subtitle = element_text(size = 36, face = ""bold"")) +
+  theme(plot.subtitle = element_text(hjust = -0.20))
+"
+"2","Scale for 'y' is already present. Adding another scale for 'y', which will replace the existing scale.
+"

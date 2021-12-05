@@ -1,0 +1,56 @@
+"0","CD <- read_csv(""NEW_AllCamsCounts.csv"")"
+"1","
+[36m--[39m [1m[1mColumn specification[1m[22m [36m---------------------------------------------------------------------------------------------------[39m
+cols(
+  .default = col_double(),
+  Camera = [31mcol_character()[39m,
+  Cluster = [31mcol_character()[39m,
+  Treatment = [31mcol_character()[39m,
+  Landcover = [31mcol_character()[39m
+)
+[36mi[39m Use [38;5;251m[48;5;235m[38;5;251m[48;5;235m`spec()`[48;5;235m[38;5;251m[49m[39m for the full column specifications.
+
+"
+"0","CD_Mamm <- read_csv(""NEW_MammalRichness.csv"")"
+"1","
+[36m--[39m [1m[1mColumn specification[1m[22m [36m---------------------------------------------------------------------------------------------------[39m
+cols(
+  .default = col_double(),
+  Camera = [31mcol_character()[39m,
+  Cluster = [31mcol_character()[39m,
+  Treatment = [31mcol_character()[39m,
+  Landcover = [31mcol_character()[39m
+)
+[36mi[39m Use [38;5;251m[48;5;235m[38;5;251m[48;5;235m`spec()`[48;5;235m[38;5;251m[49m[39m for the full column specifications.
+
+"
+"0","CD_Bird <- read_csv(""NEW_BirdRichness.csv"")"
+"1","
+[36m--[39m [1m[1mColumn specification[1m[22m [36m---------------------------------------------------------------------------------------------------[39m
+cols(
+  .default = col_double(),
+  Camera = [31mcol_character()[39m,
+  Cluster = [31mcol_character()[39m,
+  Treatment = [31mcol_character()[39m,
+  Landcover = [31mcol_character()[39m
+)
+[36mi[39m Use [38;5;251m[48;5;235m[38;5;251m[48;5;235m`spec()`[48;5;235m[38;5;251m[49m[39m for the full column specifications.
+
+"
+"0","covs <- read_csv(""Cameras_ALL_Covs.csv"")"
+"1","
+[36m--[39m [1m[1mColumn specification[1m[22m [36m---------------------------------------------------------------------------------------------------[39m
+cols(
+  Cluster = [31mcol_character()[39m,
+  Treatment = [31mcol_character()[39m,
+  Site = [31mcol_character()[39m,
+  Camera = [32mcol_double()[39m,
+  Lzeq = [32mcol_double()[39m,
+  Laeq = [32mcol_double()[39m,
+  Lux = [32mcol_double()[39m,
+  Lat = [32mcol_double()[39m,
+  Long = [32mcol_double()[39m,
+  Elevation = [32mcol_double()[39m
+)
+
+"

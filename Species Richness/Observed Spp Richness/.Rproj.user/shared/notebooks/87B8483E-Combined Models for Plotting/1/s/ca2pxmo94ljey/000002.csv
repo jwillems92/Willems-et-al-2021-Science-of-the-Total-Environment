@@ -1,0 +1,48 @@
+"0","CD <- read_csv(""Data/NEW_AllCamsCounts.csv"")"
+"1","[1mRows: [22m[34m230[39m [1mColumns: [22m[34m39[39m
+"
+"1","[36m--[39m [1mColumn specification[22m [36m-----------------------------------------------------------------------------[39m
+[1mDelimiter:[22m "",""
+[31mchr[39m  (4): Camera, Cluster, Treatment, Landcover
+[32mdbl[39m (35): JDay, Peromyscus, Scrub Jay, Spotted Towhee, Chipping sparrow, Chipmunk, Neotoma, Cotto...
+"
+"1","
+[36mi[39m Use [38;5;251m[48;5;235m[38;5;251m[48;5;235m`spec()`[48;5;235m[38;5;251m[49m[39m to retrieve the full column specification for this data.
+[36mi[39m Specify the column types or set [38;5;251m[48;5;235m[38;5;251m[48;5;235m`show_col_types = FALSE`[48;5;235m[38;5;251m[49m[39m to quiet this message.
+"
+"0","CD_Mamm <- read_csv(""Data/NEW_MammalRichness.csv"")"
+"1","[1mRows: [22m[34m230[39m [1mColumns: [22m[34m25[39m
+"
+"1","[36m--[39m [1mColumn specification[22m [36m-----------------------------------------------------------------------------[39m
+[1mDelimiter:[22m "",""
+[31mchr[39m  (4): Camera, Cluster, Treatment, Landcover
+[32mdbl[39m (21): JDay, Peromyscus, Chipmunk, Neotoma, Cottontail, Rock Squirrel, Grey fox, Elk, Jackrabb...
+"
+"1","
+[36mi[39m Use [38;5;251m[48;5;235m[38;5;251m[48;5;235m`spec()`[48;5;235m[38;5;251m[49m[39m to retrieve the full column specification for this data.
+[36mi[39m Specify the column types or set [38;5;251m[48;5;235m[38;5;251m[48;5;235m`show_col_types = FALSE`[48;5;235m[38;5;251m[49m[39m to quiet this message.
+"
+"0","CD_Bird <- read_csv(""Data/NEW_BirdRichness.csv"")"
+"1","[1mRows: [22m[34m230[39m [1mColumns: [22m[34m25[39m
+"
+"1","[36m--[39m [1mColumn specification[22m [36m-----------------------------------------------------------------------------[39m
+[1mDelimiter:[22m "",""
+[31mchr[39m  (4): Camera, Cluster, Treatment, Landcover
+[32mdbl[39m (21): JDay, Scrub Jay, Spotted Towhee, Chipping sparrow, Raven, Bluebird, Robin, Junco, Turke...
+"
+"1","
+[36mi[39m Use [38;5;251m[48;5;235m[38;5;251m[48;5;235m`spec()`[48;5;235m[38;5;251m[49m[39m to retrieve the full column specification for this data.
+[36mi[39m Specify the column types or set [38;5;251m[48;5;235m[38;5;251m[48;5;235m`show_col_types = FALSE`[48;5;235m[38;5;251m[49m[39m to quiet this message.
+"
+"0","covs <- read_csv(""Data/Cameras_ALL_Covs.csv"")"
+"1","[1mRows: [22m[34m240[39m [1mColumns: [22m[34m10[39m
+"
+"1","[36m--[39m [1mColumn specification[22m [36m-----------------------------------------------------------------------------[39m
+[1mDelimiter:[22m "",""
+[31mchr[39m (3): Cluster, Treatment, Site
+[32mdbl[39m (7): Camera, Lzeq, Laeq, Lux, Lat, Long, Elevation
+"
+"1","
+[36mi[39m Use [38;5;251m[48;5;235m[38;5;251m[48;5;235m`spec()`[48;5;235m[38;5;251m[49m[39m to retrieve the full column specification for this data.
+[36mi[39m Specify the column types or set [38;5;251m[48;5;235m[38;5;251m[48;5;235m`show_col_types = FALSE`[48;5;235m[38;5;251m[49m[39m to quiet this message.
+"

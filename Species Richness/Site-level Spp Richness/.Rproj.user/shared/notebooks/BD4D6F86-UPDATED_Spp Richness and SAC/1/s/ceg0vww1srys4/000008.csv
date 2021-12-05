@@ -1,0 +1,5 @@
+"0",""
+"0",""
+"0","MnoiseAccum <- specaccum(noise[3:12], method = ""rarefaction"")"
+"0",""
+"0","plot(MnoiseAccum, ci.type = ""poly"", ci.lty=0, col = ""goldenrod"", lwd=2, lty=3, ci.col = t_goldenrod, add=T, xvar = ""individuals"")"

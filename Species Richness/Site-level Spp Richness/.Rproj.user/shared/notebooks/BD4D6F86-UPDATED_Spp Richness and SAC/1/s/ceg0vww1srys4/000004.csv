@@ -1,0 +1,6 @@
+"0",""
+"0",""
+"0",""
+"0","McombAccum <- specaccum(combined[3:12], method = ""rarefaction"")"
+"0",""
+"0","plot(McombAccum, ci.type = ""poly"", lty=4, ci.lty=0, col = ""firebrick"", lwd=2, ci.col = t_firebrick, add=T, xvar = ""individuals"")"

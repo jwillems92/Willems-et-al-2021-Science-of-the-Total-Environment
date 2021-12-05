@@ -1,0 +1,6 @@
+"0",""
+"0",""
+"0","DFsLux <- ggpredict(betaDMod, terms = c(""LuxD""), back.transform =F, type =""fe"")"
+"0",""
+"0","D2 <- plot(DFsLux, add.data=F)  + labs(x=""Lux difference"", y =""Dissimilarity"", title =""Species Presence/Absence"") + theme_classic() + theme(panel.grid.minor = element_blank())+ theme(axis.line = element_line(colour = ""black""))"
+"0","D2"

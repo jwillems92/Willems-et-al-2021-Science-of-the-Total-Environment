@@ -1,0 +1,13 @@
+"0","sppDiv <- read_csv(""NEW_AllCamsCounts.csv"")"
+"2","Parsed with column specification:
+cols(
+  .default = col_double(),
+  Camera = [31mcol_character()[39m,
+  Cluster = [31mcol_character()[39m,
+  Treatment = [31mcol_character()[39m,
+  Landcover = [31mcol_character()[39m
+)
+"
+"2","See spec(...) for full column specifications.
+"
+"0","sppDiv <- sppDiv %>% select(-c(""Sparrow""))  "

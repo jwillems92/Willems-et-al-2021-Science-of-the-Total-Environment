@@ -1,0 +1,268 @@
+---
+title: "Untitled"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r, include=FALSE}
+library(tidyverse)
+library(lubridate)
+library(lmerTest)
+library(lme4)
+library(effects)
+library(MuMIn)
+library(DHARMa)
+library(glmmTMB)   
+library(performance)
+library(sjPlot)
+library(patchwork)
+library(ggeffects)
+```
+
+```{r Import Data, include=FALSE}
+CD <- read_csv("Data/NEW_AllCamsCounts.csv")
+CD_Mamm <- read_csv("Data/NEW_MammalRichness.csv")
+CD_Bird <- read_csv("Data/NEW_BirdRichness.csv")
+covs <- read_csv("Data/Cameras_ALL_Covs.csv")
+```
+
+```{r Join covariates DF to richness DF, include=FALSE}
+covs <- covs %>% 
+  mutate(Camera = paste(Site, Camera, sep = "_")) %>% 
+  select(Site, Camera)
+
+CD <- left_join(CD, covs)
+CD_Mamm <- left_join(CD_Mamm, covs)
+CD_Bird <- left_join(CD_Bird, covs)
+```
+
+
+
+
+## Total Richness Final Models and Plot
+
+```{r}
+Nfm1 <- glmmTMB(rich ~ scale(mIndex) + (1|Cluster/Site), data = CD, family = compois)
+Nfm2 <- glmmTMB(rich ~ scale(mIndex) + scale(Lux) + (1|Cluster/Site), data = CD, family = compois)
+Nfm3 <- glmmTMB(rich ~ scale(Lux) + (1|Cluster/Site), data = CD, family = compois)
+Nfm4 <- glmmTMB(rich ~ scale(mIndex) + scale(Laeq) + (1|Cluster/Site), data = CD, family = compois)
+```
+
+```{r Model Summary Plot for All Species}
+AllSppPlot <- plot_models(Nfm1, Nfm2, Nfm3, Nfm4,             
+            vline.color = "black",
+show.legend = FALSE,
+transform = NULL,
+line.size = 4.5,
+dot.size = 9,
+std.est="std2",
+spacing=.5,
+ci.lvl=0.95,
+grid.breaks = 1,
+axis.labels=c("Noise (LAeq)","Light (Lux)","Moon Index"),
+axis.title = "Effect Size",
+colors=c("#E69F00","#56B4E9","#009E73","#D55E00"),
+p.shape = TRUE) + 
+  ylim(-0.5, 0.5) +
+  theme_classic(base_size = 36) +
+  labs(subtitle = "(a)") +
+  theme(plot.subtitle = element_text(size = 36, face = "bold")) +
+  theme(plot.subtitle = element_text(hjust = -0.20))
+
+AllSppPlot
+```
+
+
+
+
+
+## Mammal Richness Final Models and Plot
+
+```{r}
+MNfm1 <- glmmTMB(rich ~ scale(Lux) + 
+                       scale(mIndex) + (1|Cluster/Site), data = CD_Mamm, family = compois)
+
+MNfm2 <- glmmTMB(rich ~ scale(Lux) + (1|Cluster/Site), data = CD_Mamm, family = compois)
+```
+
+```{r}
+summary(MNfm2)
+
+confint(MNfm2, method = "Wald", level=0.95)
+
+AICc(MNfm1, MNfm2)
+```
+
+
+```{r Model Summary Plot}
+MammSppPlot <- plot_models(MNfm1, MNfm2,
+            vline.color = "black",
+show.legend = FALSE,
+transform = NULL,
+line.size = 4.5,
+dot.size = 9,
+std.est="std2",
+spacing=.5,
+ci.lvl=0.95,   
+grid.breaks = 1,
+axis.labels=c("Light (Lux)","Moon Index", "Treatment: Control", "Treatment: Light", "Treatment: Noise"),
+axis.title = "Effect Size",
+colors=c("#009E73","#56B4E9"),
+p.shape = TRUE) + 
+  ylim(-0.5, 0.5) +
+  theme_classic(base_size = 36) +
+  labs(subtitle = "(b)") +
+  theme(plot.subtitle = element_text(size = 36, face = "bold")) +
+  theme(plot.subtitle = element_text(hjust = -0.20))
+
+
+MammSppPlot
+```
+
+
+```{r}
+AllSppPlot / MammSppPlot
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+## Bird Richness Final Models and Plot
+
+```{r Treatment models top-ranked set}
+BTfm1 <- glmmTMB(rich ~ Treatment + (1|Cluster/Site), data = CD_Bird, family = compois)
+
+BTfm2 <- glmmTMB(rich ~ scale(mIndex) + Treatment + (1|Cluster/Site), data = CD_Bird, family = compois)
+
+BTfm3 <- glmmTMB(rich ~ scale(mIndex) + (1|Cluster/Site), data = CD_Bird, family = compois)
+```
+
+```{r Model Summary Plot}
+BirdSppPlot <- plot_models(BTfm1, BTfm2, BTfm3,
+            vline.color = "black",
+show.legend = FALSE,
+transform = NULL,
+std.est="std2",
+spacing=.5,
+ci.lvl=0.95,
+grid.breaks = 1,
+axis.labels=c("Moon Index", "Treatment: Combined", "Treatment: Light", "Treatment: Noise"),
+axis.title = "Effect Size",
+colors=c("royalblue1", "coral1", "turquoise3"),
+p.shape = TRUE) + 
+#  ylim(-0.5, 1) +
+  theme_classic(base_size = 18) +
+  labs(subtitle = "(c)") +
+  theme(plot.subtitle = element_text(size = 20, face = "bold")) +
+  theme(plot.subtitle = element_text(hjust = -0.45))
+
+BirdSppPlot
+```
+
+```{r}
+AllSppPlot / MammSppPlot
+```
+
+
+
+
+
+
+
+
+## Individual Variable Plots
+
+```{r MIndex v Total Richness Plot}
+## ggplot manual build
+TotalSppMoon <- ggpredict(Nfm1, terms = c("mIndex") ,type ="fe")
+
+TotSppMoonDF <- as.data.frame(TotalSppMoon)
+
+TotSppMoonPlot <- 
+  TotSppMoonDF %>% 
+  ggplot(aes(x = x, y = predicted)) + 
+                  geom_line() +
+                  geom_point(data = CD, aes(x=mIndex, y=rich)) +
+                  geom_ribbon(aes(ymin=conf.low, ymax=conf.high), linetype=2, alpha=0.2) +
+                  coord_cartesian(xlim = c(0,1), ylim = c(0,3)) +
+                  labs(x="Moon Index", y="Total Richness") +
+                  theme_classic(base_size = 16) 
+
+TotSppMoonPlot
+```
+
+
+
+
+```{r MIndex v Mammal Richness Plot}
+## ggplot manual build
+MammSppMoon <- ggpredict(MNfm1, terms = c("mIndex") ,type ="fe")
+
+MammSppMoonDF <- as.data.frame(MammSppMoon)
+
+MammSppMoonPlot <- 
+  MammSppMoonDF %>% 
+  ggplot(aes(x = x, y = predicted)) + 
+                  geom_line() +
+                  geom_point(data = CD_Mamm, aes(x=mIndex, y=rich)) +
+                  geom_ribbon(aes(ymin=conf.low, ymax=conf.high), linetype=2, alpha=0.2) +
+                  coord_cartesian(xlim = c(0,1), ylim = c(0,3)) +
+                  labs(x="Moon Index", y="Richness") +
+                  theme_classic(base_size = 36) +
+  labs(subtitle = "(a)") +
+  theme(plot.subtitle = element_text(size = 36, face = "bold")) +
+  theme(plot.subtitle = element_text(hjust = -0.13))
+
+
+MammSppMoonPlot
+```
+
+
+
+```{r Lux v Mammal Richness Plot}
+## ggplot manual build
+MammSppLux <- ggpredict(MNfm1, terms = c("Lux") ,type ="fe")
+
+MammSppLuxDF <- as.data.frame(MammSppLux)
+
+MammSppLuxPlot <- 
+  MammSppLuxDF %>% 
+  ggplot(aes(x = x, y = predicted)) + 
+                  geom_line() +
+                  geom_point(data = CD_Mamm, aes(x=Lux, y=rich)) +
+                  geom_ribbon(aes(ymin=conf.low, ymax=conf.high), linetype=2, alpha=0.2) +
+                  coord_cartesian(xlim = c(0,2), ylim = c(0,3)) +
+                  labs(x="Light Level (Lux)", y="Richness") +
+                  theme_classic(base_size = 36) +
+  labs(subtitle = "(b)") +
+  theme(plot.subtitle = element_text(size = 36, face = "bold")) +
+  theme(plot.subtitle = element_text(hjust = -0.13))
+
+MammSppLuxPlot
+```
+
+```{r}
+MammSppMoonPlot / MammSppLuxPlot
+```
+
+
+

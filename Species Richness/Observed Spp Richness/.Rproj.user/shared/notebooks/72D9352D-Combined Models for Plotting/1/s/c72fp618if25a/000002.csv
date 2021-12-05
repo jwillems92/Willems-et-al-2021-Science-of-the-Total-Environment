@@ -1,0 +1,4 @@
+"0","Nfm1 <- glmmTMB(rich ~ scale(mIndex) + (1|Cluster/Site), data = CD, family = compois)"
+"0","Nfm2 <- glmmTMB(rich ~ scale(mIndex) + scale(Lux) + (1|Cluster/Site), data = CD, family = compois)"
+"0","Nfm3 <- glmmTMB(rich ~ scale(Lux) + (1|Cluster/Site), data = CD, family = compois)"
+"0","Nfm4 <- glmmTMB(rich ~ scale(mIndex) + scale(Laeq) + (1|Cluster/Site), data = CD, family = compois)"

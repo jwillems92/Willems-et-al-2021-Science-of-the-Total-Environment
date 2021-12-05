@@ -1,0 +1,3 @@
+"0","MconAccum <- specaccum(control[3:12], method = ""rarefaction"")   "
+"0",""
+"0","plot(MconAccum, ci.type = ""poly"", col = ""steelblue"", lwd=2,ci.lty=0, ci.col = t_steelblue, ylim=c(0,8), las=1, ylab ="""", xlab = """", xvar = ""individuals"", xlim=c(0,1700), cex.lab=3)   # Plot of above SAC"

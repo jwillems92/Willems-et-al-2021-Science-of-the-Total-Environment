@@ -1,0 +1,138 @@
+---
+title: "Adonis2 Camera Level Species Total Detections Analysis"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r Packages, include=FALSE}
+library(tidyverse)
+library(vegan)
+library(vegan3d)
+library(multcomp)
+library(lme4)
+library(performance)
+library(MuMIn)
+library(blmeco)
+library(matrixStats)
+library(ecodist)
+library(MASS)
+library(rgl)
+options(na.action = "na.fail")
+```
+
+
+```{r}
+d <- read.csv("Data/CamSppTotal2.csv", header=TRUE)
+head(d)
+```
+
+```{r}
+# how many zeros per treatment
+d_zero <- subset(d, d$rich < 1)     # Very few zeroes now, only 4 cameras
+d_zero
+
+# cameras with zero detections cannot be included
+d2 <- subset(d, d$rich > 0)
+
+# how many non zero cameras are left per treatment?
+sapply(split(d2$Treatment, d2$Treatment), length) # slightly fewer cameras at combined and light treatments
+```
+
+
+```{r}
+rankindex(d2$Lux, d2[2:24],indices = c("euclidean", "manhattan", "gower", "altGower", "canberra", "clark", "kulczynski", "horn", "binomial", "jaccard", "bray"))
+
+# for lux: altGower, euclidean, manhattan, kulczynski, horn
+# for laeq: gower, kulczynski, horn, bray, jaccard
+# for treatment: altGower, binomial, bray, horn, jaccard
+
+betaD1 <-vegdist(d2[2:24], method ="altGower", binary=FALSE) # for Treatment model
+
+betaD2 <- vegdist(d2[2:24], method ="kulczynski", binary=FALSE) # for Laeq + Lux model
+                                                                # chose kulczynski since lowest that both Lux                                                                  # and Laeq shared
+```
+
+
+
+```{r}
+adonis2(betaD2 ~ Lux*Laeq +
+                Lux + 
+                Laeq +
+                M_Illum + 
+                Landcover + 
+                JDay, 
+                strata = d2$Cluster, 
+                by = "margin", data = d2) 
+
+
+adonis2(betaD2 ~ Lux + 
+                Laeq +
+                M_Illum + 
+                Landcover + 
+                JDay, 
+                strata = d2$Cluster, 
+                by = "margin", data = d2) 
+
+
+adonis2(betaD1 ~ Treatment +
+                M_Illum + 
+                Landcover + 
+                JDay, 
+                strata = d2$Cluster, 
+                by = "margin", data = d2) 
+```
+
+Model: Lux*Laeq
+
+#           Df SumOfSqs      R2      F Pr(>F)  
+Lux:Laeq    1    0.412 0.00904 1.4981  0.163  
+M_Illum     1    0.976 0.02144 3.5519  0.003 **
+Landcover   1    0.269 0.00592 0.9806  0.424   
+JDay        1    0.484 0.01064 1.7625  0.085 . 
+Residual  152   41.765 0.91763                 
+Total     158   45.514 1.00000   
+
+---------------------------------------------------
+
+Model: Lux + Laeq
+
+#           Df SumOfSqs      R2      F Pr(>F)   
+Lux         1    0.452 0.00992 1.6383  0.115   
+Laeq        1    0.339 0.00745 1.2293  0.261   
+M_Illum     1    0.987 0.02169 3.5810  0.004 **
+Landcover   1    0.264 0.00579 0.9562  0.432   
+JDay        1    0.485 0.01065 1.7579  0.085 . 
+Residual  153   42.176 0.92667                 
+Total     158   45.514 1.00000               
+
+---------------------------------------------------
+
+Model: Treatment
+
+#           Df SumOfSqs      R2      F Pr(>F)  
+Treatment   3     3198 0.02228 1.1899  0.407  
+M_Illum     1     3405 0.02371 3.8000  0.094 .
+Landcover   1     7337 0.05110 8.1892  0.017 *
+JDay        1     3568 0.02485 3.9822  0.075 .
+Residual  152   136187 0.94852                
+Total     158   143578 1.00000  
+
+
+```{r}
+#Treatment pairwise comparison
+
+pairwise.adonis(x=d2[,2:24], factor = d2$Treatment, sim.function="vegdist", sim.method = "altGower", p.adjust.m = "none")
+```
+
+
+
+
+
+
+
+
+
+

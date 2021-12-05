@@ -1,0 +1,8 @@
+"0","FGp1 <- datGrouped %>% "
+"0","   ggplot(aes(fill = FGroup, x = Treatment, y = Count)) + "
+"0","   geom_bar(position=""stack"", stat=""identity"") +"
+"0","   theme_classic(base_size = 24) +"
+"0","   labs(y=""# of Cameras Detected At"") +"
+"0","   scale_fill_manual(values = c(""#999999"", ""#E69F00"", ""#56B4E9"", ""#009E73"", ""#F0E442"", ""#CC79A7"", ""#0072B2""), name = ""Func. Group"", labels = c(""Birds"", ""Diurnal rodents"", ""Reptiles"", ""Lagomorphs"", ""Mesocarnivores"", ""Nocturnal rodents"", ""Ungulates""))"
+"0",""
+"0","FGp1"

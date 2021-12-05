@@ -1,0 +1,5 @@
+"0",""
+"0",""
+"0","MlightAccum <- specaccum(light[3:12], method = ""rarefaction"")"
+"0",""
+"0","plot(MlightAccum, ci.type = ""poly"", ci.lty =0,  col = ""grey"", lwd=2, lty = 2, ci.col = t_grey, add=T, xvar = ""individuals"")"

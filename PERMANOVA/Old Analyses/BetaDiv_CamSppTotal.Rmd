@@ -1,0 +1,229 @@
+---
+title: "Untitled"
+author: "JWILLEMS"
+date: "3/11/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r Packages, include=FALSE}
+library(vegan)
+library(multcomp)
+library(lme4)
+library(performance)
+library(MuMIn)
+library(blmeco)
+library(matrixStats)
+library(ecodist)
+library(MASS)
+library(tidyverse)
+options(na.action = "na.fail")
+```
+
+
+```{r}
+d <- read.csv("CamSppTotal2.csv", header=TRUE)
+head(d)
+```
+
+```{r}
+names(d)
+dd <- as.matrix(d[2:26])
+
+d$detect <- ifelse(d$rich < 1, 0, 1)
+```
+
+```{r}
+## how many zeros per treatment
+d_zero <- subset(d, d$rich < 1)     # Very few zeroes now, only 3 cameras
+d_zero
+
+
+## does number of cameras with zero detections differ per treatment?
+sapply(split(d_zero$Treatment, d_zero$Treatment), length) 
+
+### ok, so one challenge is that cameras with zero detections cannot be included
+d2 <- subset(d, d$rich > 0)
+
+## how many non zero camereas are left per treatment?
+sapply(split(d2$Treatment, d2$Treatment), length)         
+```
+
+
+** Moving forward I'm using the d2 dataframe that removes the cameras with no detections
+
+
+```{r}
+rankindex(d2$Lux, d2[2:26],indices = c("euclidean", "manhattan", "gower", "altGower", "canberra", "clark", "kulczynski", "horn", "binomial", "jaccard", "bray"))
+
+# for lux, gower, clark, canberra
+# for laeq, altGower, euclidean, manhattan 
+# for treatment, kulczynski, clark, canberra
+
+betaD <-vegdist(d2[2:26], method ="clark", binary=FALSE)    # chose clark since in the top for both Treatment & Lux
+```
+
+
+```{r}
+#### we can now use a permanova to see whether we see turnover among our treatments
+
+adonis(betaD ~ d2$Treatment + d2$Laeq + d2$Lux + d2$M_Illum + d2$Landcover + d2$JDay + d2$Treatment*d2$M_Illum + d2$Lux*d2$M_Illum + d2$Lux*d2$Laeq)    
+
+### add pair.wise adonis for treatment conparisons
+
+pairwise.adonis(x=d2[,2:26], factor = d2$Treatment, sim.function="vegdist", sim.method = "clark", p.adjust.m = "none")
+```
+
+ADONIS:
+
+             Df   SumsOfSqs MeanSqs  F.Model    R2    Pr(>F)    
+d2$Treatment   3     2.315  0.77166  1.9074  0.02557  0.004 ** 
+d2$Laeq        1     0.372  0.37249  0.9207  0.00411  0.500    
+d2$Lux         1     0.551  0.55067  1.3611  0.00608  0.185    
+d2$Landcover   1     0.453  0.45291  1.1195  0.00500  0.295    
+d2$M_Illum     1     1.284  1.28427  3.1745  0.01419  0.001 ***
+d2$JDay        1     0.600  0.59987  1.4828  0.00663  0.125    
+Residuals    210    84.958  0.40456          0.93842           
+Total        218    90.534                   1.00000           
+
+
+       Pair            F.Model        R2        p    pADJ
+Control vs Light	    0.8638137	  0.01030020	0.575	0.575	
+Control vs Noise	    2.7846178	  0.03136374	0.006	0.006	*
+Control vs Combined	  1.0810811	  0.01333333	0.324	0.324	
+Light vs Noise	      2.4905361	  0.02983016	0.004	0.004	*
+Light vs Combined	    1.5857791	  0.02070592	0.067	0.067	
+Noise vs Combined	    3.7485402	  0.04585452	0.003	0.003	*
+
+
+
+
+
+
+######################
+## we can also use nonmetric multidimensional scaling to visualize differences between sites  
+####### testing plotting metaMDS
+
+
+```{r}
+# scree plot to determine the parsimonious axis number
+
+scree<-nmds(betaD,mindim=1, maxdim=5, nit=10)
+stress<-scree$stress
+plot(stress)
+
+axis.seq<-c(seq(1,1, length=10), seq(2,2,length=10), seq(3,3, length=10), seq(4,4,length=10), seq(5,5,length=10))
+plot(stress~factor(axis.seq))
+```
+
+# run an MDS on the data
+#####FIRST MAKE A DISTANCE MATRIX USING a distance matrix THEN SEND TO NMDS
+
+```{r, include=FALSE}
+D3.mds<-metaMDS(betaD, k=3, trymax=100)
+D3.mds ### 
+```
+
+
+```{r}
+#### display three versions with each showing proportion of guild of total
+## see if 3D NMDS will be better to display
+plot(D3.mds, las=1) ## open circles are points and crosses are species
+
+Env <- data.frame(d2$Treatment)
+fit <- envfit(D3.mds, Env)
+fit
+plot(fit)
+```
+
+
+```{r}
+par(mfrow=c(1,2))
+
+# axes 1 and 2
+plot(D3.mds, type = "n", las=1,  xlim=c(-0.5,0.5), ylim=c(-0.5,0.5), choices = c(1,2))
+
+ordihull(D3.mds,groups=d2$Treatment,draw="polygon",col=c("grey44", "pink", "skyblue", "red"),label=F)
+points(D3.mds, display = "sites", pch = 21, cex = 2)
+
+# axes 1 and 3
+plot(D3.mds, type = "n", las=1,  xlim=c(-0.5,0.5), ylim=c(-0.5,0.5), choices = c(1,3), xlab ="NMDS1", ylab="NMDS3")
+ordihull(D3.mds,groups=d2$Treatment,draw="polygon",col=c("grey44", "pink", "skyblue", "red"),choices = c(1,3), label=F)
+points(D3.mds, choices = c(1,3), display = "sites", pch = 21, cex = 2)
+```
+
+
+```{r}
+##### now with oridispider
+
+par(mfrow=c(1,2))
+
+# axes 1 and 2
+plot(D3.mds, type = "n", las=1,  xlim=c(-0.5,0.5), ylim=c(-0.5,0.5), choices = c(1,2))
+ordispider(D3.mds,groups=d$Treatment,display="sites",col=c("grey44", "pink", "skyblue","red"),label=F, lwd=3, choices = c(1,2))
+points(D3.mds, display = "sites", pch = 21, cex = 0.25, choices = c(1,2))
+
+# axes 1 and 3
+plot(D3.mds, type = "n", las=1,  xlim=c(-0.5,0.5), ylim=c(-0.5,0.5), choices = c(1,3), xlab ="NMDS1", ylab="NMDS3")
+ordispider(D3.mds,groups=d$Treatment,display="sites",col=c("grey44", "pink", "skyblue", "red"),label=F, lwd=3, choices = c(1,3))
+points(D3.mds, display = "sites", pch = 21, cex = 0.25, choices = c(1,3))
+```
+
+
+
+
+
+
+
+
+
+SIMPER TESTING
+
+```{r, EXAMPLE FROM PACKAGE}
+data(dune)
+data(dune.env)
+(sim <- with(dune.env, simper(dune, Management)))
+summary(sim)
+```
+
+```{r}
+sim2 <- simper(d2[2:26], d2$Treatment, permutations = 100, trace = TRUE)
+summary(sim2, ordered = TRUE)
+```
+
+The simper functions performs pairwise comparisons of groups of sampling units and finds the average contributions of each species to the average overall Bray-Curtis dissimilarity.
+
+The function displays most important species for each pair of groups. These species contribute at least to 70 % of the differences between groups. The function returns much more extensive results which can be accessed directly from the result object (see section Value). Function summary transforms the result to a list of data frames. With argument ordered = TRUE the data frames also include the cumulative contributions and are ordered by species contribution.
+
+The results of simper can be very difficult to interpret. The method very badly confounds the mean between group differences and within group variation, and seems to single out variable species instead of distinctive species (Warton et al. 2012). Even if you make groups that are copies of each other, the method will single out species with high contribution, but these are not contributions to non-existing between-group differences but to within-group variation in species abundance.
+
+```{r}
+library(indicspecies)
+
+data("wetland")
+wetland
+```
+
+
+```{r}
+indSpp <- multipatt(d2[2:26], d2$Treatment, control = how(nperm=999))
+
+summary(indSpp)
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+

@@ -1,0 +1,3 @@
+"0","# how many zeros per treatment"
+"0","d_zero <- subset(d, d$rich < 1)     # No cameras w/ 0 detections"
+"0","d_zero"

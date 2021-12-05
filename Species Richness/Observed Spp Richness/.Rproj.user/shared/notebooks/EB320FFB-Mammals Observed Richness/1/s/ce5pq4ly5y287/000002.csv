@@ -1,0 +1,1 @@
+"0","Tgm1 <- glmmTMB(rich ~ Treatment * scale(mIndex) + (1|Cluster/Site), data = CD, family = compois)"

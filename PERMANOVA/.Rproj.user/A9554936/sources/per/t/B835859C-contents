@@ -1,0 +1,247 @@
+---
+title: "Adonis2 Camera Func. Group Presence/Absence"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+```{r Packages, include=FALSE}
+library(tidyverse)
+library(vegan)
+library(vegan3d)
+library(multcomp)
+library(lme4)
+library(performance)
+library(MuMIn)
+library(blmeco)
+library(matrixStats)
+library(ecodist)
+library(MASS)
+library(rgl)
+library(ggeffects)
+options(na.action = "na.fail")
+```
+
+
+```{r}
+d <- read.csv("Data/CamTaxaBinary2.csv", header=TRUE)
+head(d)
+```
+
+```{r}
+# how many zeros per treatment
+d_zero <- subset(d, d$rich < 1)     # No cameras w/ 0 detections
+d_zero
+```
+
+
+```{r}
+rankindex(d$Treatment, d[2:8],indices = c("euclidean", "manhattan", "gower", "altGower", "canberra", "clark", "kulczynski", "horn", "binomial", "jaccard", "bray"))
+
+# for lux: euclidean, manhattan, gower, binomial, altGower, jaccard, bray, clark, altGower
+# for laeq: kulczynski, jaccard, bray, horn, clark, canberra, altGower
+# for treatment: euclidean, manhattan, gower, binomial 
+
+betaD1 <-vegdist(d[2:8], method ="gower", binary=TRUE) # for Treatment model
+
+betaD2 <- vegdist(d[2:8], method ="jaccard", binary=TRUE) # for Laeq + Lux model
+                                                             # chose jaccard since lowest that both Lux                                                                     # and Laeq shared
+```
+
+
+```{r}
+adonis2(betaD2 ~ Lux*Laeq +
+                Lux + 
+                Laeq +
+                mIndex + 
+                Landcover + 
+                JDay, 
+                strata = d$Cluster, 
+                by = "margin", data = d) 
+
+
+adonis2(betaD2 ~ Lux + 
+                Laeq +
+                mIndex + 
+                Landcover + 
+                JDay, 
+                strata = d$Cluster, 
+                by = "margin", data = d) 
+
+
+adonis2(betaD1 ~ Treatment +
+                mIndex + 
+                Landcover + 
+                JDay, 
+                strata = d$Cluster, 
+                by = "margin", data = d) 
+```
+
+Model: Lux * Laeq
+
+#          Df  SumOfSqs   R2      F    Pr(>F) 
+Lux:Laeq    1    0.110 0.00264 0.4476  0.749 
+mIndex      1    1.027 0.02450 4.1585  0.011 *
+Landcover   1    0.073 0.00173 0.2940  0.880  
+JDay        1    0.141 0.00336 0.5702  0.653  
+Residual  156   38.514 0.91906                
+Total     162   41.906 1.00000 
+
+-------------------------------------------------
+
+Model: Lux + Laeq
+
+#           Df  SumOfSqs  R2      F     Pr(>F)   
+Lux         1    1.119 0.02669 4.5468  0.006 **
+Laeq        1    0.051 0.00122 0.2073  0.939   
+mIndex      1    1.049 0.02502 4.2627  0.010 **
+Landcover   1    0.063 0.00150 0.2561  0.913   
+JDay        1    0.141 0.00336 0.5716  0.669   
+Residual  157   38.624 0.92170                 
+Total     162   41.906 1.00000     
+
+-------------------------------------------------
+
+Model: Treatment
+
+#           Df  SumOfSqs  R2      F    Pr(>F)  
+Treatment   3   0.2446 0.04278 2.4384  0.029 *
+mIndex      1   0.1615 0.02824 4.8294  0.011 *
+Landcover   1   0.0678 0.01186 2.0285  0.140  
+JDay        1   0.0610 0.01067 1.8249  0.167  
+Residual  156   5.2152 0.91226                
+Total     162   5.7168 1.00000  
+
+
+
+
+```{r}
+#Treatment pairwise comparison
+
+pairwise.adonis(x=d[,2:8], factor = d$Treatment, sim.function="vegdist", sim.method = "gower", p.adjust.m = "none")
+```
+
+
+Comparison                    F.Model     R2          p-value
+Control vs Light	            0.6027259	0.00738610	0.596		
+Control vs Noise	            1.6993265	0.01960023	0.228		
+Control vs Combined	         0.9235167	0.01155501	0.434		
+Light vs Noise	               1.7237585	0.02109250	0.192		
+Light vs Combined	            1.1934187	0.01587132	0.368		
+Noise vs Combined	            3.7904089	0.04634295	0.022	.
+
+
+
+
+## FIGURES
+
+
+
+```{r}
+leqD <- dist(d$Laeq)
+luxD <- dist(d$Lux)
+mIndexD <- dist(d$mIndex)
+JDayD <- dist(d$JDay)
+betaDv <- c(betaD2) 
+
+envD <- data.frame(c(leqD),c(luxD),c(JDayD), c(mIndexD), c(betaDv))
+names(envD) <- c("LeqD", "LuxD", "JDayD", "MoonIndexD", "betaDdf")
+
+betaDMod <- lm(betaDdf ~ LeqD* LuxD + JDayD + MoonIndexD, data = envD)
+
+summary(betaDMod)
+```
+
+```{r}
+DFsdB <- ggpredict(betaDMod, terms = c("LeqD", "LuxD"), back.transform =F, type ="fe")
+
+C1 <- plot(DFsdB, colors="eight", add.data=F)  + 
+      labs(x="Sound difference (dB)", y ="Dissimilarity", title ="") + 
+      theme_classic(base_size = 18) + 
+      theme(panel.grid.minor = element_blank()) + 
+      theme(axis.line = element_line(colour = "black"))
+C1
+```
+
+```{r}
+DFsLux <- ggpredict(betaDMod, terms = c("LuxD", "LeqD"), back.transform =F, type ="fe")
+
+D1 <- plot(DFsLux, colors="eight", add.data=F)  + 
+      labs(x="Light difference (Lux)", y ="Dissimilarity", title ="") + 
+      theme_classic(base_size = 18) + 
+      theme(panel.grid.minor = element_blank()) + 
+      theme(axis.line = element_line(colour = "black"))
+D1
+```
+
+```{r}
+DFsMoon <- ggpredict(betaDMod, terms = c("MoonIndexD", "LeqD"), back.transform =F, type ="fe")
+
+M1 <- plot(DFsMoon, colors="eight", add.data=F)  + 
+      labs(x="Moonlight difference", y ="Dissimilarity", title ="") + 
+      theme_classic(base_size = 18) + 
+      theme(panel.grid.minor = element_blank()) + 
+      theme(axis.line = element_line(colour = "black"))
+M1
+```
+
+```{r}
+C1 / D1 / M1
+```
+
+
+
+
+
+## Indicator Species Analysis
+
+
+```{r}
+library(indicspecies)
+
+indSpp <- multipatt(d[2:8], d$Treatment, control = how(nperm=999))
+
+summary(indSpp)
+```
+
+Noise Treatment 
+               stat   p.value  
+Mesocarnivores 0.27   0.047 *
+
+-------------------------------
+
+Combined + Control + Light Treatments
+      stat   p.value  
+Birds 0.516   0.026 *
+
+
+
+
+
+
+
+```{r}
+datGrouped <- d %>% dplyr::select(Nocturnal.rodents, Birds, Diurnal.rodents, Lagomorphs, Herps, Ungulates, Mesocarnivores, Treatment)
+
+datGrouped <- datGrouped %>% 
+   pivot_longer(!Treatment, names_to = "FGroup", values_to = "count") %>% 
+   group_by(Treatment, FGroup) %>% 
+   summarise(Count = sum(count))
+```
+
+```{r}
+FGp1 <- datGrouped %>% 
+   ggplot(aes(fill = FGroup, x = Treatment, y = Count)) + 
+   geom_bar(position="stack", stat="identity") +
+   theme_classic(base_size = 24) +
+   labs(y="# of Cameras Detected At") +
+   scale_fill_manual(values = c("#999999", "#E69F00", "#56B4E9", "#009E73", "#F0E442", "#CC79A7", "#0072B2"), name = "Func. Group", labels = c("Birds", "Diurnal rodents", "Reptiles", "Lagomorphs", "Mesocarnivores", "Nocturnal rodents", "Ungulates"))
+
+FGp1
+```
+
+
+

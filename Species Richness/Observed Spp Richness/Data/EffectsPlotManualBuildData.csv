@@ -1,0 +1,10 @@
+Model,Variable,Estimate,lowerCI,upperCI
+Nfm2,mIndex,-0.1389,-0.3,0.022
+Nfm2,Lux,-0.0622,-0.194,0.069
+Nfm1,mIndex,-0.14,-0.301,0.021
+Nfm3,Lux,-0.063,-0.195,0.068
+Nfm4,mIndex,-0.14,-0.299,0.018
+Nfm4,LAeq,0.027,-0.095,0.148
+MNfm1,Lux,-0.208,-0.418,0.003
+MNfm1,mIndex,-0.211,-0.368,-0.054
+MNfm2,Lux,-0.207,-0.417,0.004

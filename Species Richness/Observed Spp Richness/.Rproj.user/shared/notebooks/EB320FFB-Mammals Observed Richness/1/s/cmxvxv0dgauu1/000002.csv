@@ -1,0 +1,7 @@
+"0","covs <- covs %>% "
+"0","  mutate(Camera = paste(Site, Camera, sep = ""_"")) %>% "
+"0","  select(Site, Camera)"
+"0",""
+"0","CD <- left_join(CD, covs)"
+"2","Joining, by = ""Camera""
+"

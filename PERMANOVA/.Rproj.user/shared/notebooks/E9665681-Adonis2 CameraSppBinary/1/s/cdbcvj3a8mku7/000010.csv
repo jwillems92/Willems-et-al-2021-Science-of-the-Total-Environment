@@ -1,0 +1,3 @@
+"0","# how many zeros per treatment"
+"0","d_zero <- subset(d, d$rich < 1)     # Very few zeroes now, only 4 cameras"
+"0","d_zero"

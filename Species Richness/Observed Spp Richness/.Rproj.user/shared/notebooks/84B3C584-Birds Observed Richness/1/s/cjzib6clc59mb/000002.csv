@@ -1,0 +1,27 @@
+"0","CD <- read_csv(""NEW_BirdRichness.csv"")"
+"2","Parsed with column specification:
+cols(
+  .default = col_double(),
+  Camera = [31mcol_character()[39m,
+  Cluster = [31mcol_character()[39m,
+  Treatment = [31mcol_character()[39m,
+  Landcover = [31mcol_character()[39m
+)
+"
+"2","See spec(...) for full column specifications.
+"
+"0","covs <- read_csv(""Cameras_ALL_Covs.csv"")"
+"2","Parsed with column specification:
+cols(
+  Cluster = [31mcol_character()[39m,
+  Treatment = [31mcol_character()[39m,
+  Site = [31mcol_character()[39m,
+  Camera = [32mcol_double()[39m,
+  Lzeq = [32mcol_double()[39m,
+  Laeq = [32mcol_double()[39m,
+  Lux = [32mcol_double()[39m,
+  Lat = [32mcol_double()[39m,
+  Long = [32mcol_double()[39m,
+  Elevation = [32mcol_double()[39m
+)
+"

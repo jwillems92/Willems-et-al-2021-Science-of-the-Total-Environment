@@ -1,0 +1,129 @@
+---
+title: "Untitled"
+author: "J Willems"
+date: "7/3/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r, include=FALSE}
+library(tidyverse)
+library(patchwork)
+library(ggeffects)
+```
+
+```{r, include=FALSE}
+datMan <- read_csv("Data/EffectsPlotManualBuildData.csv")
+```
+
+
+```{r} 
+## Total Richness Plot 1 
+P1 <- datMan %>% 
+  filter(Model == "Nfm1") %>% 
+  ggplot(aes(x=Estimate, y=Variable, color=Variable)) + 
+  geom_point(size=4) +
+  scale_color_manual("Variable", values = c("#E69F00")) +
+  geom_errorbarh(aes(xmax = upperCI, xmin = lowerCI, height=0), size=2) +
+  geom_vline(xintercept = 0, size=1) +
+  xlim(c(-0.50, 0.50)) +
+  theme_classic(base_size = 28) +
+  theme(axis.title.y=element_blank(),
+        legend.position = "none") +
+  scale_y_discrete(labels=c("Moon Index")) +
+  labs(subtitle = "(a)") +
+  theme(plot.subtitle=element_text(size=28, hjust=-0.22, face="bold", color="black"))
+
+
+## Total Richness Plot 2
+P2 <- datMan %>% 
+  filter(Model == "Nfm2") %>% 
+  ggplot(aes(x=Estimate, y=Variable, color=Variable)) + 
+  geom_point(size=4) +
+  scale_color_manual("Variable", values = c("#56B4E9", "#E69F00")) +
+  geom_errorbarh(aes(xmax = upperCI, xmin = lowerCI, height=0), size=2) +
+  geom_vline(xintercept = 0, size=1) +
+  xlim(c(-0.50, 0.50)) +
+  theme_classic(base_size = 28) +
+  theme(axis.title.y=element_blank(),
+        legend.position = "none") +
+  scale_y_discrete(labels=c("Light (Lux)", "Moon Index")) +
+  labs(subtitle = "(b)") +
+  theme(plot.subtitle=element_text(size=28, hjust=-0.22, face="bold", color="black"))
+
+
+## Total Richness Plot 3
+P3 <- datMan %>% 
+  filter(Model == "Nfm3") %>% 
+  ggplot(aes(x=Estimate, y=Variable, color=Variable)) + 
+  geom_point(size=4) +
+  scale_color_manual("Variable", values = c("#56B4E9")) +
+  geom_errorbarh(aes(xmax = upperCI, xmin = lowerCI, height=0), size=2) +
+  geom_vline(xintercept = 0, size=1) +
+  xlim(c(-0.50, 0.50)) +
+  theme_classic(base_size = 28) +
+  theme(axis.title.y=element_blank(),
+        legend.position = "none") +
+  scale_y_discrete(labels=c("Light (Lux)")) +
+  labs(subtitle = "(c)") +
+  theme(plot.subtitle=element_text(size=28, hjust=-0.22, face="bold", color="black"))
+
+
+## Total Richness Plot 4
+P4 <- datMan %>% 
+  filter(Model == "Nfm4") %>% 
+  ggplot(aes(x=Estimate, y=Variable, color=Variable)) + 
+  geom_point(size=4) +
+  scale_color_manual("Variable", values = c("#009E73", "#E69F00")) +
+  geom_errorbarh(aes(xmax = upperCI, xmin = lowerCI, height=0), size=2) +
+  geom_vline(xintercept = 0, size=1) +
+  xlim(c(-0.50, 0.50)) +
+  theme_classic(base_size = 28) +
+  theme(axis.title.y=element_blank(),
+        legend.position = "none") +
+  scale_y_discrete(labels=c("Noise (LAeq)", "Moon Index")) +
+  labs(subtitle = "(d)") +
+  theme(plot.subtitle=element_text(size=28, hjust=-0.22, face="bold", color="black"))
+
+
+## Mammal Richness Plot 1
+P5 <- datMan %>% 
+  filter(Model == "MNfm1") %>% 
+  ggplot(aes(x=Estimate, y=Variable, color=Variable)) + 
+  geom_point(size=4) +
+  scale_color_manual("Variable", values = c("#56B4E9", "#E69F00")) +
+  geom_errorbarh(aes(xmax = upperCI, xmin = lowerCI, height=0), size=2) +
+  geom_vline(xintercept = 0, size=1) +
+  xlim(c(-0.50, 0.50)) +
+  theme_classic(base_size = 28) +
+  theme(axis.title.y=element_blank(),
+        legend.position = "none") +
+  scale_y_discrete(labels=c("Light (Lux)", "Moon Index")) +
+  labs(subtitle = "(e)") +
+  theme(plot.subtitle=element_text(size=28, hjust=-0.22, face="bold", color="black"))
+
+
+## Mammal Richness Plot 2
+P6 <- datMan %>% 
+  filter(Model == "MNfm2") %>% 
+  ggplot(aes(x=Estimate, y=Variable, color=Variable)) + 
+  geom_point(size=4) +
+  scale_color_manual("Variable", values = c("#56B4E9")) +
+  geom_errorbarh(aes(xmax = upperCI, xmin = lowerCI, height=0), size=2) +
+  geom_vline(xintercept = 0, size=1) +
+  xlim(c(-0.50, 0.50)) +
+  theme_classic(base_size = 28) +
+  theme(axis.title.y=element_blank(),
+        legend.position = "none") +
+  scale_y_discrete(labels=c("Light (Lux)")) +
+  labs(subtitle = "(f)") +
+  theme(plot.subtitle=element_text(size=28, hjust=-0.22, face="bold", color="black"))
+
+
+
+(P1+P2) / (P3+P4) / (P5+P6)
+```
+
